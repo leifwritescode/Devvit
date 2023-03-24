@@ -43,7 +43,7 @@ function playerHasWon(board: number[], token: number): boolean {
 // naively plays the first available cell
 function playNaiveTicTacToeAlgorithm(board: number[], token: number): number[] {
   var nextPlayableCell = board.indexOf(-1);
-  board[nextPlayableCell] == token;
+  board[nextPlayableCell] = token;
   return board;
 }
 
@@ -119,7 +119,7 @@ Devvit.addTrigger({
     var theRealPost = await reddit.getPostById(request.post!.id);
 
     // play X
-    gameState[theCellIndex] == 0;
+    gameState[theCellIndex] = 0;
     if (playerHasWon(gameState, 0)) {
       console.log("the player wins!");
 
