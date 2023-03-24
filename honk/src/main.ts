@@ -1,69 +1,45 @@
-import { Context, Devvit, UserContext } from '@devvit/public-api';
+import { Comment, Devvit, KeyValueStorage, RedditAPIClient } from '@devvit/public-api';
+import { CommentSubmit, Metadata, PostSubmit } from '@devvit/protos';
 
-/**
- * Declare the custom actions we'd like to add to the subreddit
- */
-Devvit.addAction({
-  context: Context.POST,
-  name: 'Custom Post Action', // text to display in the menu (keep it short!)
-  description: 'Do something with this post', // short blurb describing what we're going to do
-  handler: async (event) => {
-    const message = `Post action! Post ID: ${event.post?.id}`;
-    console.log(message);
-    /**
-     * We need to return two things from this call:
-     *  - success: whether the Action succeeded
-     *  - message: A bit of text to show the user as
-     *             feedback (confirmation, warning, error, etc.)
-     */
-    return { success: true, message };
-  },
-});
+const reddit = new RedditAPIClient();
 
-Devvit.addAction({
-  context: Context.COMMENT,
-  name: 'Custom Comment Action', // text to display in the menu (keep it short!)
-  description: 'Do something with this comment', // short blurb describing what we're going to do
-  handler: async (event) => {
-    const message = `Comment action! Comment ID: ${event.comment?.id}`;
-    console.log(message);
-    return { success: true, message };
-  },
-});
+const honkingGreatRegex: string = "";
 
-Devvit.addAction({
-  context: Context.SUBREDDIT,
-  name: 'Custom Subreddit Action', // text to display in the menu (keep it short!)
-  description: 'Do something with this subreddit', // short blurb describing what we're going to do
-  handler: async (event) => {
-    const message = `Subreddit action! Subreddit ID: ${event.subreddit?.id}`;
-    console.log(message);
-    return { success: true, message };
-  },
-});
+async function honkQuestionMarkExclamationPoint(comment: Comment) {
 
-Devvit.addAction({
-  context: Context.POST,
-  userContext: UserContext.MODERATOR,
-  name: 'Custom Post Action, only for mods!', // text to display in the menu (keep it short!)
-  description: 'Do something with this post', // short blurb describing what we're going to do
-  handler: async (event) => {
-    const message = `Post action for mods! Post ID: ${event.post?.id}`;
-    console.log(message);
-    return { success: true, message };
-  },
-});
+}
 
-Devvit.addAction({
-  context: Context.POST,
-  userContext: UserContext.MEMBER,
-  name: 'Custom Post Action, only for members!', // text to display in the menu (keep it short!)
-  description: 'Do something with this post', // short blurb describing what we're going to do
-  handler: async (event) => {
-    const message = `Post action for members! Post ID: ${event.post?.id}`;
-    console.log(message);
-    return { success: true, message };
-  },
+async function honkQuestionMark(comment: Comment) {
+  var parentId = comment.parentId;
+  if (parentId.startsWith("t1_")) {
+    return await honkQuestionMarkExclamationPoint(comment);
+  }
+
+  var parent = await reddit.getCommentById(parentId);
+  if (parent.authorName != "my current author name") {
+    // if the parent is a comment, and it wasn't made by us, then we're not interested.
+    return;
+  }
+
+  switch (comment.body) {
+    case "good bot":
+      comment.reply({ text: "_honks seductively_" });
+      break;
+    case "bad bot":
+      comment.reply({ text: "_hissssssss_" });
+      break;
+    default:
+      break;
+  }
+}
+
+Devvit.addTrigger({
+  event: Devvit.Trigger.CommentSubmit,
+  async handler(request: CommentSubmit, Metadata?: Metadata) {
+    console.log("received new comment");
+    var theComment = await reddit.getCommentById(request.comment!.id);
+    await honkQuestionMark(theComment);
+  }
 });
 
 export default Devvit;
