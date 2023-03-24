@@ -1,2 +1,3 @@
 # Devvit
-My experiments with the shiny, new Reddit Developer Platform
+
+A monorepo containing my experiments with the super-excitingly-shiny-newfangled Reddit Developer Platform, lovingly known as Devvit.
