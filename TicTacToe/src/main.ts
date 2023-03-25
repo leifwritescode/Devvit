@@ -1,157 +1,163 @@
-import { Devvit, KeyValueStorage, RedditAPIClient } from '@devvit/public-api';
+import { Devvit, KeyValueStorage, RedditAPIClient, RichTextBuilder } from '@devvit/public-api';
 import { CommentSubmit, Metadata, PostSubmit } from '@devvit/protos';
+import { TicTacToe } from './TicTacToe.js';
+import { Difficulty, PlayResult } from './Types.js';
+import { TicTacToeState, getTicTacToeStateFromKeyValueStore } from './TicTacToeState.js';
+import { NaiveComputer } from './NaiveComputer.js';
+import { Computer } from './Computer.js';
+import { ModifiedMinMax } from './ModifiedMinMaxComputer.js';
 
 const keyValueStorage = new KeyValueStorage();
 const reddit = new RedditAPIClient();
 
-const cellFriendNameToCellIndex: string[] = [ "top left", "top middle", "top right", "middle left", "middle", "middle right", "bottom left", "bottom middle", "bottom right" ];
-const initialPostBody = `|-|-|-|
-| | | |
-| | | |
-| | | |`
-
-const winConditions: number[][] = [
-  [0, 1, 2],
-  [3, 4, 5],
-  [6, 7, 8],
-  [0, 4, 8],
-  [2, 4, 6],
-  [0, 3, 6],
-  [1, 4, 7],
-  [2, 5, 8]
-];
+const cellFriendlyNamesByIndex: string[] = [ "top left", "top middle", "top right", "middle left", "middle", "middle right", "bottom left", "bottom middle", "bottom right" ];
 
 // construct markdown table from raw board
-function constructBoardRepresentation(board: number[]): string {
-  var boardString = "|-|-|-|\n";
-  for (var rowIndex = 0; rowIndex <= 6; rowIndex += 3) {
-    boardString += `|${board[rowIndex + 0]}|${board[rowIndex + 1]}|${board[rowIndex + 2]}|`
-  }
-  return boardString.replace("-1", " ");
-}
-
-// check for no valid moves remaining
-function isStalemate(board: number[]): boolean {
-  return !board.some(cell => cell == -1)
-}
-
-// simple check to see if the board matches any of the win conditons for the supplied token
-function playerHasWon(board: number[], token: number): boolean {
-  return winConditions.some(winCondition => winCondition.every(cell => board[cell] == token));
-}
-
-// naively plays the first available cell
-function playNaiveTicTacToeAlgorithm(board: number[], token: number): number[] {
-  var nextPlayableCell = board.indexOf(-1);
-  board[nextPlayableCell] = token;
-  return board;
+function constructBoardRepresentation(board: number[]): RichTextBuilder {
+    var rtb = new RichTextBuilder();
+    rtb.table(table => {
+        for (var rowIndex = 0; rowIndex <= 6; rowIndex += 3) {
+            for (var cellIndex = 0; cellIndex <= 2; ++cellIndex) {      
+                table.row(row => {
+                    var value = board[rowIndex + cellIndex];
+                    var text = " ";
+                    switch (value) {
+                        case 1:
+                        text = "O";
+                        break;
+                        case 0:
+                        text = "X";
+                        break;
+                        default:
+                        break;
+                    }
+                    
+                    row.cell(cell => cell.text({ text: text}));
+                });
+            }
+        }
+    });
+    
+    return rtb;
 }
 
 Devvit.addTrigger({
-  event: Devvit.Trigger.PostSubmit,
-  async handler(request: PostSubmit, metadata?: Metadata) {
-    console.log("received new post!");
-    var theRealPost = await reddit.getPostById(request.post!.id);
+    event: Devvit.Trigger.PostSubmit,
+    async handler(request: PostSubmit, metadata?: Metadata) {
+        console.log("received new post!");
+        /*
+        var theRealPost = await reddit.getPostById(request.post!.id, metadata);
 
-    if (request.post?.title != "play tictactoe") {
-      console.log("this post is not a new game");
+        if (request.post?.title != "play tictactoe") {
+            console.log("this post is not a new game");
+            
+            await theRealPost.delete();
+            return;
+        }
 
-      await theRealPost.delete();
-      return;
-    }
+        var gameState = await keyValueStorage.get<number[]>(request.author!.id);
+        if (gameState != undefined) {
+            console.log("the user tried to make a game, but one is already in progress -- starting again!");
+            await keyValueStorage.delete(request.author!.id);
+            return;
+        }
 
-    var gameState = await keyValueStorage.get<number[]>(request.author!.id);
-    if (gameState != undefined) {
-      console.log("the user tried to make a game, but one is already in progress!");
+        // prep the game board
+        await keyValueStorage.put(request.author!.id, [-1, -1, -1, -1, -1, -1, -1, -1, -1]);
 
-      await theRealPost.delete();
-      return;
-    }
-
-    // prep the game board
-    await keyValueStorage.put(request.author!.id, [-1, -1, -1, -1, -1, -1, -1, -1, -1]);
-
-    // start new game
-    // reply with the rules and how to play
-    var replyBody = `Let's play tic-tac-toe. You'll be 'x,' and move first.
-    You can issue a move by making a comment with any of the following cell names:
-    ${cellFriendNameToCellIndex.join(", ")}
-    It doesn't matter whether you leave a top comment, or reply to an existing comment.
-    Each time you send a move, I'll update the body of the post with the current state of the board.
-    `;
-
-    await theRealPost.addComment({ text: replyBody });
-    await theRealPost.edit({ text: initialPostBody });
-  },
+        // start new game
+        // reply with the rules and how to play
+        var replyBody = `Let's play tic-tac-toe. You'll be 'x,' and move first.
+        You can issue a move by making a comment with any of the following cell names:
+        ${cellFriendlyNamesByIndex.join(", ")}
+        It doesn't matter whether you leave a top comment, or reply to an existing comment.
+        Each time you send a move, I'll update the body of the post with the current state of the board.
+        `;
+        
+        await theRealPost.addComment({ text: replyBody });
+        await theRealPost.edit({ richtext: constructBoardRepresentation([-1, -1, -1, -1, -1, -1, -1, -1, -1]) });
+        */
+    },
 })
 
+function newComputer(state: TicTacToeState, difficulty: Difficulty): Computer {
+    switch (difficulty) {
+        case Difficulty.Trivial:
+            return new NaiveComputer(state);
+        case Difficulty.Hard:
+            return new ModifiedMinMax(state); // todo regular minmax, as a treat
+        case Difficulty.LiterallySatan:
+            return new ModifiedMinMax(state);
+    }
+}
 
 Devvit.addTrigger({
-  event: Devvit.Trigger.CommentSubmit,
-  async handler(request: CommentSubmit, metadata?: Metadata) {
-    console.log("received new comment");
-    var theRealComment = await reddit.getCommentById(request.comment!.id);
+    event: Devvit.Trigger.CommentSubmit,
+    async handler(request: CommentSubmit, metadata?: Metadata) {
+        var author = request.author!;
+        var comment = request.comment!;
 
-    if (request.author?.id != request.post?.authorId) {
-      console.log("a rogue user appeared! deleting their comment.");
+        var state = await getTicTacToeStateFromKeyValueStore(author.id, keyValueStorage);
+        if (state === undefined) {
+            console.error(`game state is undefined for ${author.name}`);
+            return;
+        }
 
-      await theRealComment.delete();
-      return;
-    }
-  
-    var gameState = await keyValueStorage.get<number[]>(request.author!.id);
-    if (gameState == undefined) {
-      console.log("the user doesn't have an active game");
+        var ticTacToe = new TicTacToe(state);
+        var move = cellFriendlyNamesByIndex.indexOf(comment.body);
+        if (move === -1) {
+            console.error(`player ${author.name} attempted an invalid move: ${comment.body}`);
+            return;
+        }
 
-      await theRealComment.delete();
-      return;
-    }
+        var result = ticTacToe.play(move);
+        switch (result) {
+            case PlayResult.InvalidState:
+                console.error(`player ${author.name} attempted to play after game over`);
+                return;
 
-    var theCellIndex = cellFriendNameToCellIndex.indexOf(request.comment!.body);
-    if (gameState[theCellIndex] != -1)
-    {
-      console.log("can't play that cell");
+            case PlayResult.InvalidMove:
+                console.error(`player ${author.name} attempted a move incompatible with the game state`);
+                return;
 
-      await theRealComment.delete();
-      return;
-    }
+            // the only outcome that should proceed with play is this
+            case PlayResult.NextPlayerTurn:
+                console.log(`player ${author.name} played at ${comment.body}, next turn`);
+                break;
 
-    var theRealPost = await reddit.getPostById(request.post!.id);
+            case PlayResult.PlayerHasWon:
+                console.log(`player ${author.name} has triumphed against the computer`); // or indeed the computer against the player
+                return;
 
-    // play X
-    gameState[theCellIndex] = 0;
-    if (playerHasWon(gameState, 0)) {
-      console.log("the player wins!");
+            case PlayResult.Stalemate:
+                console.log(`player ${author.name} drew with the computer`);
+                return;
+        };
 
-      var theNewPostBody = `You win!
-      ${constructBoardRepresentation(gameState)}`;
-      await theRealPost.edit({ text: theNewPostBody });
-      return;
-    }
+        var computer = newComputer(state, Difficulty.Trivial);
+        result = computer.play(ticTacToe);
+        switch (result) {
+            case PlayResult.InvalidState:
+                console.error(`the computer attempted to play after game over`);
+                break;
 
-    // need to check for stalemate now
-    if (isStalemate(gameState)) {
-      console.log("stalemate");
+            case PlayResult.InvalidMove:
+                console.error(`the computer attempted a move incompatible with the game state`);
+                break;
 
-      var theNewPostBody = `It's a stalemate. :(
-      ${constructBoardRepresentation(gameState)}`;
-      await theRealPost.edit({ text: theNewPostBody });
-      return;
-    }
+            case PlayResult.NextPlayerTurn:
+                console.log(`the computer played at TODO, next turn`);
+                break;
 
-    // make our play
-    gameState = playNaiveTicTacToeAlgorithm(gameState, 1);
+            case PlayResult.PlayerHasWon:
+                console.log(`the computer has triumphed against player ${author.name}`); // or indeed the computer against the player
+                break;
 
-    // determine if win
-    if (playerHasWon(gameState, 1)) {
-      console.log("the ai wins!");
-
-      var theNewPostBody = `The computer won!
-      ${constructBoardRepresentation(gameState)}`;
-      await theRealPost.edit({ text: theNewPostBody });
-      return;
-    }
-  },
+            case PlayResult.Stalemate:
+                console.log(`the computer drew with player ${author.name}`);
+                break;
+        }
+    },
 })
 
 export default Devvit;
