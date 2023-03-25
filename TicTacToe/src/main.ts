@@ -5,7 +5,7 @@ import { Difficulty, PlayResult } from './Types.js';
 import { TicTacToeState, getTicTacToeStateFromKeyValueStore } from './TicTacToeState.js';
 import { NaiveComputer } from './NaiveComputer.js';
 import { Computer } from './Computer.js';
-import { ModifiedMinMax } from './ModifiedMinMaxComputer.js';
+import { ModifiedMinMaxComputer } from './ModifiedMinMaxComputer.js';
 
 const keyValueStorage = new KeyValueStorage();
 const reddit = new RedditAPIClient();
@@ -85,9 +85,9 @@ function newComputer(state: TicTacToeState, difficulty: Difficulty): Computer {
         case Difficulty.Trivial:
             return new NaiveComputer(state);
         case Difficulty.Hard:
-            return new ModifiedMinMax(state); // todo regular minmax, as a treat
+            return new NaiveComputer(state); // todo regular minmax, as a treat
         case Difficulty.LiterallySatan:
-            return new ModifiedMinMax(state);
+            return new ModifiedMinMaxComputer(state);
     }
 }
 

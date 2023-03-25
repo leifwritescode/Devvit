@@ -3,7 +3,7 @@ import { TicTacToe } from "./TicTacToe.js";
 import { TicTacToeState } from "./TicTacToeState.js";
 import { PlayResult } from "./Types.js";
 
-export class ModifiedMinMax implements Computer {
+export class ModifiedMinMaxComputer implements Computer {
     private state: TicTacToeState;
 
     constructor(state: TicTacToeState) {
