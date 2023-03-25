@@ -1,4 +1,7 @@
-export type Player = 'X' | 'O';
+export enum Player {
+    Redditor = 'X',
+    Computer = 'O',
+}
 
 export type Board = (Player | null)[];
 
