@@ -1,7 +1,7 @@
 import { Computer } from "./Computer.js";
 import { TicTacToe } from "./TicTacToe.js";
 import { TicTacToeState } from "./TicTacToeState.js";
-import { PlayResult } from "./Types.js";
+import { Player, PlayResult } from "./Types.js";
 
 export class NaiveComputer implements Computer {
     private state: TicTacToeState;
@@ -11,7 +11,8 @@ export class NaiveComputer implements Computer {
     }
 
     play(ticTacToe: TicTacToe): PlayResult {
-        var move = this.state.board.indexOf(null);
+        var legalMoves = this.state.board.reduce<number[]>((acc: number[], el: (Player | null), i: number) => (el === null) ? [...acc, i] : acc, []);
+        var move = Math.floor(Math.random() * legalMoves.length);
         return ticTacToe.play(move);    
     }
 }
